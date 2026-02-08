@@ -1,0 +1,2 @@
+source C:/Github/esp32-webpanel-dual/build/bootloader/gdbinit/symbols
+source C:/Github/esp32-webpanel-dual/build/bootloader/gdbinit/connect
