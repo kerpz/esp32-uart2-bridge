@@ -1,6 +1,7 @@
 #pragma once
 
-#define UART2_BAUD_RATE 115200
+// #define UART2_BAUD_RATE 115200
+#define UART2_BAUD_RATE 9600
 
 #define UART2_PORT UART_NUM_2
 #define UART2_TXD 17 // change as needed

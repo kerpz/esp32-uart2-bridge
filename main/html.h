@@ -558,8 +558,8 @@ static const char *INDEX_HTML = R"rawliteral(
       websocket.onmessage = (e) => {
           console.log(event.data)
           const ws_debug = document.getElementById('_ws_debug');
-          ws.debug.value += event.data + '\n';
-          let obj = JSON.parse(event.data);
+          ws_debug.value += event.data;
+          //let obj = JSON.parse(event.data);
       };
 
       const hash = location.hash.split("#");
