@@ -371,7 +371,7 @@ static const char *INDEX_HTML = R"rawliteral(
         nets.forEach(net => {
             const opt = document.createElement('option');
             opt.value = net.ssid;
-            let lock = net.authmode !== 0 ? ' 🔒' : '';
+            let lock = net.authmode !== 0 ? ' &#128274;' : '';
             opt.text = `${net.ssid} ${net.signal}% ${lock}`;
             if (net.ssid === defaultSSID) {
               opt.selected = true;
