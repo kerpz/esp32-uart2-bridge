@@ -1,6 +1,6 @@
 #pragma once
 
-#define APPCODE "ESP32-WEBPANEL-DUAL"
+#define APPCODE "ESP32-UART2-BRIDGE"
 
 #define MAX_WS_CLIENTS 4
 
