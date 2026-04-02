@@ -3,7 +3,7 @@ name: ESP-IDF Build and Release
 on:
   push:
     tags:
-      - 'v*.*.*'  # Trigger on tags like v1.0.0
+      - 'v*.*.*'
 
 jobs:
   build-and-release:
@@ -18,8 +18,8 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Install ESP-IDF 5.5.2
-      uses: espressif/setup-esp-idf@v2
+    - name: Set up ESP-IDF 5.5.2
+      uses: espressif/esp-idf-action@v2
       with:
         version: 'v5.5.2'
 
