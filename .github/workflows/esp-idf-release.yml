@@ -3,55 +3,63 @@ name: ESP-IDF Build and Release
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - 'v*.*.*'   # Trigger on tags like v1.0.0
+  workflow_dispatch:  # Allow manual triggering from Actions tab
 
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      # 1. Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      # 2. Set up Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Set up ESP-IDF 5.5.2
-      uses: espressif/esp-idf-action@v2
-      with:
-        version: 'v5.5.2'
+      # 3. Set up ESP-IDF 5.5.2
+      - name: Set up ESP-IDF 5.5.2
+        uses: espressif/esp-idf-action@v2
+        with:
+          version: 'v5.5.2'
 
-    - name: Export IDF_PATH
-      run: echo "IDF_PATH=${HOME}/esp-idf" >> $GITHUB_ENV
+      # 4. Install project dependencies
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-    - name: Install project dependencies
-      run: |
-        python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      # 5. Build project
+      - name: Build project
+        run: idf.py build
 
-    - name: Build project
-      run: idf.py build
+      # 6. List build output
+      - name: List build output
+        run: ls -lh build
 
-    - name: List build output
-      run: ls -lh build
+      # 7. Create GitHub release only if this run is triggered by a tag
+      - name: Create or get GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body: "Automated ESP-IDF build from tag ${{ github.ref_name }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Create or get GitHub Release
-      id: create_release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ github.ref_name }}
-        name: Release ${{ github.ref_name }}
-        body: "Automated ESP-IDF build from tag ${{ github.ref_name }}"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Upload build artifacts
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          build/*.bin
-          build/*.elf
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # 8. Upload build artifacts only if triggered by a tag
+      - name: Upload build artifacts
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            build/*.bin
+            build/*.elf
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
