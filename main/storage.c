@@ -9,10 +9,8 @@
 
 static const char *TAG = "storage";
 
-/* Global config instance */
 device_config_t devcfg = {0};
 
-/* ---------- Defaults ---------- */
 static void config_apply_defaults(device_config_t *cfg)
 {
     ESP_LOGI(TAG, "applying default config");
@@ -36,7 +34,6 @@ static void config_apply_defaults(device_config_t *cfg)
     cfg->http_timeout = 0;
 }
 
-/* ---------- Load ---------- */
 void config_load(device_config_t *cfg)
 {
     memset(cfg, 0, sizeof(*cfg));
@@ -50,7 +47,6 @@ void config_load(device_config_t *cfg)
         return;
     }
 
-    /* magic */
     nvs_get_u8(nvs, "magic", &cfg->magic);
 
     len = sizeof(cfg->ap_ssid);
@@ -85,7 +81,6 @@ void config_load(device_config_t *cfg)
     nvs_close(nvs);
 }
 
-/* ---------- Save ---------- */
 void config_save(device_config_t *cfg)
 {
     nvs_handle_t nvs;
@@ -121,7 +116,6 @@ void config_save(device_config_t *cfg)
     ESP_LOGI(TAG, "config saved");
 }
 
-/* ---------- Storage start ---------- */
 void storage_start(void)
 {
     esp_err_t ret = nvs_flash_init();

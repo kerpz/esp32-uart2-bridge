@@ -17,12 +17,10 @@ static const char *TAG = "network";
 esp_netif_t *ap_netif = NULL;
 esp_netif_t *sta_netif = NULL;
 
-/* ===== State नियंत्रण ===== */
 static int retry_count = 0;
 static bool sta_enabled = true;
 static bool sntp_started = false;
 
-/* ===== Backoff function ===== */
 static int get_retry_delay_ms(int retry)
 {
   if (retry < 5)
@@ -33,7 +31,6 @@ static int get_retry_delay_ms(int retry)
     return 15000; // slow forever
 }
 
-/* ===== WiFi Event Handler ===== */
 static void wifi_event_handler(void *arg,
                                esp_event_base_t event_base,
                                int32_t event_id,
@@ -87,7 +84,6 @@ static void wifi_event_handler(void *arg,
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
     ESP_LOGI(TAG, "STA got IP: " IPSTR, IP2STR(&event->ip_info.ip));
 
-    /* ===== SNTP (only once) ===== */
     if (!sntp_started)
     {
       sntp_started = true;
@@ -98,7 +94,6 @@ static void wifi_event_handler(void *arg,
       esp_sntp_init();
     }
 
-    /* ===== Wait for time sync ===== */
     time_t now = 0;
     struct tm timeinfo = {0};
     int retry = 0;
@@ -112,7 +107,6 @@ static void wifi_event_handler(void *arg,
       retry++;
     }
 
-    /* ===== Philippines timezone ===== */
     setenv("TZ", "PHT-8", 1);
     tzset();
 
@@ -123,7 +117,6 @@ static void wifi_event_handler(void *arg,
   }
 }
 
-/* ===== Public: Start Network ===== */
 void network_start(void)
 {
   ESP_ERROR_CHECK(esp_netif_init());
@@ -135,7 +128,6 @@ void network_start(void)
   wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
   ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-  /* Register events */
   ESP_ERROR_CHECK(
       esp_event_handler_instance_register(
           WIFI_EVENT,
@@ -152,10 +144,8 @@ void network_start(void)
           NULL,
           NULL));
 
-  /* Always AP + STA */
   ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
 
-  /* ===== STA Config ===== */
   wifi_config_t sta_config = {0};
   strncpy((char *)sta_config.sta.ssid,
           devcfg.sta_ssid,
@@ -167,7 +157,6 @@ void network_start(void)
 
   ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_config));
 
-  /* ===== AP Config ===== */
   wifi_config_t ap_config = {0};
 
   strncpy((char *)ap_config.ap.ssid,
@@ -188,29 +177,22 @@ void network_start(void)
     ap_config.ap.authmode = WIFI_AUTH_WPA2_PSK;
 
   ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_config));
-
-  /* Start WiFi */
   ESP_ERROR_CHECK(esp_wifi_start());
 
   ESP_LOGI(TAG, "Network started (AP always ON, STA auto-retry)");
 }
 
-/* ===== Public: Disable STA ===== */
 void wifi_sta_disable(void)
 {
   ESP_LOGW(TAG, "Disabling STA...");
-
   sta_enabled = false;
   esp_wifi_disconnect();
 }
 
-/* ===== Public: Enable STA ===== */
 void wifi_sta_enable(void)
 {
   ESP_LOGI(TAG, "Enabling STA...");
-
   retry_count = 0;
   sta_enabled = true;
-
   esp_wifi_connect();
 }

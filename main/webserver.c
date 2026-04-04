@@ -67,10 +67,8 @@ static void json_add_select(cJSON *elements,
   cJSON_AddStringToObject(sel, "label", label);
   cJSON_AddStringToObject(sel, "name", name);
 
-  /* Convert value to string */
   cJSON_AddStringToObject(sel, "value", value ? "1" : "0");
 
-  /* Options */
   cJSON *opts = cJSON_CreateArray();
 
   cJSON *opt0 = cJSON_CreateArray();
@@ -100,9 +98,6 @@ static void json_copy_str(cJSON *doc,
   }
 }
 
-/***********************************************************
- index page handler
-***********************************************************/
 static esp_err_t index_handler(httpd_req_t *req)
 {
   httpd_resp_set_type(req, "text/html");
@@ -110,9 +105,6 @@ static esp_err_t index_handler(httpd_req_t *req)
   return ESP_OK;
 }
 
-/***********************************************************
- system page handler
-***********************************************************/
 static esp_err_t system_handler(httpd_req_t *req)
 {
   uint8_t expand_system = 0;
@@ -123,7 +115,6 @@ static esp_err_t system_handler(httpd_req_t *req)
   // uint8_t timezone = 8;
   // time_t epoch = 1700000000; // fixed epoch for demo
 
-  /* ---------- Receive POST body ---------- */
   int total_len = req->content_len;
   char *buf = malloc(total_len + 1);
   if (!buf)
@@ -137,7 +128,6 @@ static esp_err_t system_handler(httpd_req_t *req)
   }
   buf[recv_len] = 0;
 
-  /* ---------- Parse JSON ---------- */
   if (strcmp(buf, "{}") != 0)
   {
     cJSON *doc = cJSON_Parse(buf);
@@ -171,7 +161,6 @@ static esp_err_t system_handler(httpd_req_t *req)
 
   free(buf);
 
-  /* ---------- Time ---------- */
   char datetime[20];
   struct tm timeinfo = {0};
   // time_t now = epoch + (timezone * 3600);
@@ -181,7 +170,6 @@ static esp_err_t system_handler(httpd_req_t *req)
   localtime_r(&now, &timeinfo);
   strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", &timeinfo);
 
-  /* ---------- System info ---------- */
   uint32_t free_heap = esp_get_free_heap_size();
 
   uint32_t flash_size = 0;
@@ -199,7 +187,6 @@ static esp_err_t system_handler(httpd_req_t *req)
   char flash_str[16];
   sprintf(flash_str, "%lu", flash_size);
 
-  /* ---------- WiFi info ---------- */
   uint8_t mac_sta[6], mac_ap[6];
   esp_wifi_get_mac(WIFI_IF_STA, mac_sta);
   esp_wifi_get_mac(WIFI_IF_AP, mac_ap);
@@ -229,10 +216,8 @@ static esp_err_t system_handler(httpd_req_t *req)
 
   wifi_config_t wifi_cfg;
 
-  /* ---------- Build JSON ---------- */
   cJSON *root = cJSON_CreateArray();
 
-  /* ----- System ----- */
   cJSON *sys = cJSON_CreateObject();
   cJSON_AddStringToObject(sys, "label", "System");
   cJSON_AddStringToObject(sys, "name", "expand_system");
@@ -249,7 +234,6 @@ static esp_err_t system_handler(httpd_req_t *req)
 
   cJSON_AddItemToArray(root, sys);
 
-  /* ----- WiFi AP ----- */
   cJSON *ap = cJSON_CreateObject();
   cJSON_AddStringToObject(ap, "label", "Wifi AP");
   cJSON_AddStringToObject(ap, "name", "expand_wifiap");
@@ -266,7 +250,6 @@ static esp_err_t system_handler(httpd_req_t *req)
 
   cJSON_AddItemToArray(root, ap);
 
-  /* ----- WiFi STA ----- */
   cJSON *sta = cJSON_CreateObject();
   cJSON_AddStringToObject(sta, "label", "Wifi Sta");
   cJSON_AddStringToObject(sta, "name", "expand_wifista");
@@ -282,7 +265,6 @@ static esp_err_t system_handler(httpd_req_t *req)
 
   cJSON_AddItemToArray(root, sta);
 
-  /* ----- Command ----- */
   cJSON *cmd = cJSON_CreateObject();
   cJSON_AddStringToObject(cmd, "label", "Command");
   cJSON_AddStringToObject(cmd, "name", "expand_command");
@@ -303,7 +285,6 @@ static esp_err_t system_handler(httpd_req_t *req)
 
   char *json_out = cJSON_PrintUnformatted(root);
 
-  /* ---------- Send response ---------- */
   httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
   httpd_resp_set_type(req, "application/json");
   httpd_resp_send(req, json_out, HTTPD_RESP_USE_STRLEN);
@@ -314,12 +295,8 @@ static esp_err_t system_handler(httpd_req_t *req)
   return ESP_OK;
 }
 
-/***********************************************************
- config page handler
-***********************************************************/
 esp_err_t config_handler(httpd_req_t *req)
 {
-  /* ---------- Receive POST body ---------- */
   int total = req->content_len;
   char *buf = malloc(total + 1);
   if (!buf)
@@ -372,10 +349,8 @@ esp_err_t config_handler(httpd_req_t *req)
   }
   free(buf);
 
-  /* ---------- Build JSON response ---------- */
   cJSON *root = cJSON_CreateArray();
 
-  /* ----- Wi-Fi AP section ----- */
   cJSON *ap = cJSON_CreateObject();
   cJSON_AddStringToObject(ap, "label", "Wifi AP");
   cJSON_AddStringToObject(ap, "name", "expand_wifiap");
@@ -399,7 +374,6 @@ esp_err_t config_handler(httpd_req_t *req)
 
   cJSON_AddItemToArray(root, ap);
 
-  /* ----- Wi-Fi STA section ----- */
   cJSON *sta = cJSON_CreateObject();
   cJSON_AddStringToObject(sta, "label", "Wifi Sta");
   cJSON_AddStringToObject(sta, "name", "expand_wifista");
@@ -509,7 +483,6 @@ esp_err_t config_handler(httpd_req_t *req)
 
   cJSON_AddItemToArray(root, sta);
 
-  /* ----- Components section ----- */
   cJSON *comp = cJSON_CreateObject();
   cJSON_AddStringToObject(comp, "label", "Components");
   cJSON_AddStringToObject(comp, "name", "expand_component");
@@ -525,7 +498,6 @@ esp_err_t config_handler(httpd_req_t *req)
 
   cJSON_AddItemToArray(root, comp);
 
-  /* ----- API Post section ----- */
   cJSON *api = cJSON_CreateObject();
   cJSON_AddStringToObject(api, "label", "API Post");
   cJSON_AddStringToObject(api, "name", "expand_post");
@@ -552,7 +524,6 @@ esp_err_t config_handler(httpd_req_t *req)
 
   cJSON_AddItemToArray(root, api);
 
-  /* ----- Alarm section ----- */
   // cJSON *alarm = cJSON_CreateObject();
   // cJSON_AddStringToObject(alarm, "label", "Alarm");
   // cJSON_AddStringToObject(alarm, "name", "expand_alarm");
@@ -570,7 +541,6 @@ esp_err_t config_handler(httpd_req_t *req)
 
   // cJSON_AddItemToArray(root, alarm);
 
-  /* ----- Page section ----- */
   cJSON *page = cJSON_CreateObject();
   cJSON_AddStringToObject(page, "label", "Page");
   cJSON_AddStringToObject(page, "name", "expand_page");
@@ -588,7 +558,6 @@ esp_err_t config_handler(httpd_req_t *req)
 
   cJSON_AddItemToArray(root, page);
 
-  /* ---------- Send JSON response ---------- */
   char *json_out = cJSON_PrintUnformatted(root);
   httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
   httpd_resp_set_type(req, "application/json");
@@ -600,13 +569,9 @@ esp_err_t config_handler(httpd_req_t *req)
   return ESP_OK;
 }
 
-/***********************************************************
- app page handler
-***********************************************************/
 esp_err_t app_handler(httpd_req_t *req)
 {
   uint8_t refresh = 2;
-  /* ---------- Receive POST body ---------- */
   int total = req->content_len;
   char *buf = malloc(total + 1);
   if (!buf)
@@ -636,10 +601,8 @@ esp_err_t app_handler(httpd_req_t *req)
   }
   free(buf);
 
-  /* ---------- Build JSON response ---------- */
   cJSON *root = cJSON_CreateArray();
 
-  /* ----- WS section ----- */
   cJSON *ws = cJSON_CreateObject();
   cJSON_AddStringToObject(ws, "label", "WS");
   cJSON_AddStringToObject(ws, "name", "expand_ws");
@@ -656,7 +619,6 @@ esp_err_t app_handler(httpd_req_t *req)
 
   cJSON_AddItemToArray(root, ws);
 
-  /* ----- Page section ----- */
   cJSON *page = cJSON_CreateObject();
   cJSON_AddStringToObject(page, "label", "Page");
   cJSON_AddStringToObject(page, "name", "expand_page");
@@ -674,7 +636,6 @@ esp_err_t app_handler(httpd_req_t *req)
 
   cJSON_AddItemToArray(root, page);
 
-  /* ---------- Send JSON response ---------- */
   char *json_out = cJSON_PrintUnformatted(root);
   httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
   httpd_resp_set_type(req, "application/json");
@@ -686,9 +647,6 @@ esp_err_t app_handler(httpd_req_t *req)
   return ESP_OK;
 }
 
-/***********************************************************
- firmware update handler
-***********************************************************/
 static esp_err_t ota_update_handler(httpd_req_t *req)
 {
   esp_ota_handle_t ota_handle;
@@ -712,9 +670,6 @@ static esp_err_t ota_update_handler(httpd_req_t *req)
   return ESP_OK;
 }
 
-/***********************************************************
- firmware upgrade page handler
-***********************************************************/
 static esp_err_t firmware_handler(httpd_req_t *req)
 {
   /*
@@ -726,7 +681,6 @@ static esp_err_t firmware_handler(httpd_req_t *req)
       "</form></body></html>";
   httpd_resp_sendstr(req, html);
   */
-  /* -------- Build JSON -------- */
   cJSON *root = cJSON_CreateArray();
 
   cJSON *section = cJSON_CreateObject();
@@ -737,7 +691,6 @@ static esp_err_t firmware_handler(httpd_req_t *req)
   cJSON *elements = cJSON_CreateArray();
   cJSON_AddItemToObject(section, "elements", elements);
 
-  /* File input */
   cJSON *file = cJSON_CreateObject();
   cJSON_AddStringToObject(file, "type", "file");
   cJSON_AddStringToObject(file, "label", "File");
@@ -746,7 +699,6 @@ static esp_err_t firmware_handler(httpd_req_t *req)
   cJSON_AddStringToObject(file, "accept", ".bin");
   cJSON_AddItemToArray(elements, file);
 
-  /* Upload button */
   cJSON *btn = cJSON_CreateObject();
   cJSON_AddStringToObject(btn, "type", "button");
   cJSON_AddStringToObject(btn, "label", "UPLOAD");
@@ -758,7 +710,6 @@ static esp_err_t firmware_handler(httpd_req_t *req)
 
   char *json_out = cJSON_PrintUnformatted(root);
 
-  /* -------- Send response -------- */
   httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
   httpd_resp_set_type(req, "application/json");
   httpd_resp_send(req, json_out, HTTPD_RESP_USE_STRLEN);
@@ -769,9 +720,6 @@ static esp_err_t firmware_handler(httpd_req_t *req)
   return ESP_OK;
 }
 
-/***********************************************************
- wifi scan handler
-***********************************************************/
 static esp_err_t wifi_scan_handler(httpd_req_t *req)
 {
   wifi_scan_config_t scan_config = {
@@ -780,7 +728,6 @@ static esp_err_t wifi_scan_handler(httpd_req_t *req)
       .channel = 0,
       .show_hidden = true};
 
-  /* blocking scan */
   ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, true));
 
   uint16_t ap_count = 0;
@@ -801,7 +748,6 @@ static esp_err_t wifi_scan_handler(httpd_req_t *req)
 
     int rssi = ap_records[i].rssi;
 
-    /* RSSI quality */
     int quality;
     if (rssi <= -100)
       quality = 0;
@@ -844,9 +790,6 @@ static esp_err_t wifi_scan_handler(httpd_req_t *req)
   return ESP_OK;
 }
 
-/***********************************************************
- websocket handler and manager
-***********************************************************/
 static void ws_add_client(httpd_req_t *req)
 {
   int fd = httpd_req_to_sockfd(req);
@@ -962,9 +905,6 @@ static esp_err_t ws_handler(httpd_req_t *req)
   return ESP_OK;
 }
 
-/***********************************************************
- main webserver start function
-***********************************************************/
 void webserver_start(void)
 {
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();

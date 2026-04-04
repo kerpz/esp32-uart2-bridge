@@ -1,7 +1,6 @@
 #include "driver/uart.h"
 #include "driver/gpio.h"
 
-/* TCP / sockets */
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -15,12 +14,8 @@
 
 static const char *TAG = "uart2";
 
-/* Active TCP client */
 static int tcp_client_sock = -1;
 
-/* -------------------------------------------------------
- * TCP bridge task (TCP -> UART)
- * -----------------------------------------------------*/
 void uart2_tcp_task(void *arg)
 {
   int listen_sock, sock;
@@ -55,7 +50,6 @@ void uart2_tcp_task(void *arg)
       }
       else if (len == 0)
       {
-        /* client disconnected */
         break;
       }
       else if (errno != EAGAIN && errno != EWOULDBLOCK)
@@ -73,10 +67,6 @@ void uart2_tcp_task(void *arg)
   }
 }
 
-/* -------------------------------------------------------
- * Unified UART reader task
- * UART -> LOG + WS + TCP + NMEA parsing + ESP32 time update
- * -----------------------------------------------------*/
 void uart2_task(void *arg)
 {
   uint8_t buf[256];
@@ -94,19 +84,15 @@ void uart2_task(void *arg)
 
     if (len > 0)
     {
-      /* Send raw data to WebSocket clients */
       ws_broadcast((char *)buf, len);
 
-      /* Send raw data to TCP client if connected */
       if (tcp_client_sock >= 0)
       {
         send(tcp_client_sock, buf, len, 0);
       }
 
-      /* Print raw GPS output for debugging */
       ESP_LOGI("GPS_RAW", "%.*s", len, buf);
 
-      /* Build NMEA lines and parse them */
       for (int i = 0; i < len; i++)
       {
         char c = buf[i];
@@ -117,24 +103,20 @@ void uart2_task(void *arg)
           {
             linebuf[linepos] = 0; // terminate line
 
-            /* Parse NMEA sentence */
             nmea_parse_line(linebuf);
 
             gps_data_t *g = gps_get_data();
 
-            /* Update ESP32 system time from GPS */
             if (g->fix)
             {
               struct tm t = {0};
 
-              // Parse hhmmss from utc_time
               if (strlen(g->utc_time) >= 6)
                 sscanf(g->utc_time, "%2d%2d%2d",
                        &t.tm_hour,
                        &t.tm_min,
                        &t.tm_sec);
 
-              // Parse ddmmyy from utc_date
               int day, mon, year;
               if (strlen(g->utc_date) >= 6)
               {
@@ -152,7 +134,6 @@ void uart2_task(void *arg)
               settimeofday(&now, NULL);
             }
 
-            /* Print parsed GPS info */
             ESP_LOGI("GPS_PARSED",
                      "UTC:%s Fix:%d Lat:%.6f Lon:%.6f Sat:%d Alt:%.1f",
                      g->utc_time,
@@ -175,9 +156,6 @@ void uart2_task(void *arg)
   }
 }
 
-/* -------------------------------------------------------
- * UART initialization
- * -----------------------------------------------------*/
 void uart2_start(void)
 {
   uart_config_t uart_config = {
@@ -194,7 +172,6 @@ void uart2_start(void)
   ESP_ERROR_CHECK(uart_set_pin(UART2_PORT, UART2_TXD, UART2_RXD,
                                UART2_RTS, UART2_CTS));
 
-  /* Tasks */
   xTaskCreate(uart2_task, "uart2_task", 4096, NULL, 5, NULL);
   xTaskCreate(uart2_tcp_task, "uart2_tcp", 4096, NULL, 5, NULL);
 
