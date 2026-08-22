@@ -347,17 +347,18 @@ static const char *INDEX_HTML = R"rawliteral(
     }
     const fileUpload = async (fileInput) => {
       try {
-        const formData = new FormData();
-        formData.append('file', fileInput.files[0]);
+        const file = fileInput.files[0];
+        if (!file) return;
         const response = await fetch(`http://${baseurl}/upload`, {
           method: 'POST',
-          body: formData
+          headers: { 'Content-Type': 'application/octet-stream' },
+          body: file
         });
-        elements = await response.json();
-        createPage(elements);
+        if (!response.ok) throw new Error(await response.text());
+        console.log(await response.text());
       }
       catch (error) {
-        console.log('error in fileUpload');
+        console.error('error in fileUpload', error);
       }
     }
     const fetchWifi = async (defaultSSID) => {
@@ -371,7 +372,7 @@ static const char *INDEX_HTML = R"rawliteral(
         nets.forEach(net => {
             const opt = document.createElement('option');
             opt.value = net.ssid;
-            let lock = net.authmode !== 0 ? ' &#128274;' : '';
+            let lock = net.authmode !== 0 ? ' +' : '';
             opt.text = `${net.ssid} ${net.signal}% ${lock}`;
             if (net.ssid === defaultSSID) {
               opt.selected = true;

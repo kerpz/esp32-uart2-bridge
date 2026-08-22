@@ -100,6 +100,7 @@ static void json_copy_str(cJSON *doc,
 
 static esp_err_t index_handler(httpd_req_t *req)
 {
+  httpd_resp_set_hdr(req, "Cache-Control", "no-store, no-cache, must-revalidate");
   httpd_resp_set_type(req, "text/html");
   httpd_resp_sendstr(req, INDEX_HTML);
   return ESP_OK;
@@ -649,21 +650,79 @@ esp_err_t app_handler(httpd_req_t *req)
 
 static esp_err_t ota_update_handler(httpd_req_t *req)
 {
+  char content_type[64];
+  if (httpd_req_get_hdr_value_str(req, "Content-Type", content_type, sizeof(content_type)) != ESP_OK ||
+      strncmp(content_type, "application/octet-stream", strlen("application/octet-stream")) != 0)
+  {
+    ESP_LOGW(TAG, "OTA rejected: invalid content type: %s", content_type);
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST,
+                        "Upload firmware as application/octet-stream");
+    return ESP_ERR_INVALID_ARG;
+  }
+
   esp_ota_handle_t ota_handle;
   const esp_partition_t *update_partition = esp_ota_get_next_update_partition(NULL);
-  ESP_ERROR_CHECK(esp_ota_begin(update_partition, OTA_SIZE_UNKNOWN, &ota_handle));
+  if (!update_partition)
+  {
+    ESP_LOGE(TAG, "OTA failed: no update partition available");
+    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "No OTA partition available");
+    return ESP_ERR_NOT_FOUND;
+  }
+
+  ESP_LOGI(TAG, "OTA starting: partition=%s size=%d bytes",
+           update_partition->label, req->content_len);
+  esp_err_t err = esp_ota_begin(update_partition, OTA_SIZE_UNKNOWN, &ota_handle);
+  if (err != ESP_OK)
+  {
+    ESP_LOGE(TAG, "OTA begin failed: 0x%x", err);
+    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA begin failed");
+    return err;
+  }
   char buf[1024];
   int remaining = req->content_len;
+  int received_total = 0;
+  int next_progress = 64 * 1024;
   while (remaining > 0)
   {
     int recv_len = httpd_req_recv(req, buf, remaining > sizeof(buf) ? sizeof(buf) : remaining);
     if (recv_len <= 0)
+    {
+      esp_ota_abort(ota_handle);
+      ESP_LOGE(TAG, "OTA receive failed after %d bytes", received_total);
       return ESP_FAIL;
-    esp_ota_write(ota_handle, buf, recv_len);
+    }
+    err = esp_ota_write(ota_handle, buf, recv_len);
+    if (err != ESP_OK)
+    {
+      esp_ota_abort(ota_handle);
+      ESP_LOGE(TAG, "OTA write failed after %d bytes: 0x%x", received_total, err);
+      httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "OTA write failed");
+      return err;
+    }
     remaining -= recv_len;
+    received_total += recv_len;
+    if (received_total >= next_progress)
+    {
+      ESP_LOGI(TAG, "OTA progress: %d/%d bytes", received_total, req->content_len);
+      next_progress += 64 * 1024;
+    }
   }
-  ESP_ERROR_CHECK(esp_ota_end(ota_handle));
-  ESP_ERROR_CHECK(esp_ota_set_boot_partition(update_partition));
+  err = esp_ota_end(ota_handle);
+  if (err != ESP_OK)
+  {
+    ESP_LOGE(TAG, "OTA image validation failed after %d bytes: 0x%x", received_total, err);
+    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Invalid firmware image");
+    return err;
+  }
+  err = esp_ota_set_boot_partition(update_partition);
+  if (err != ESP_OK)
+  {
+    ESP_LOGE(TAG, "OTA boot partition update failed: 0x%x", err);
+    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to set boot partition");
+    return err;
+  }
+  ESP_LOGI(TAG, "OTA success: %d bytes written to partition %s; rebooting",
+           received_total, update_partition->label);
   httpd_resp_sendstr(req, "Update complete. Rebooting...");
   vTaskDelay(pdMS_TO_TICKS(1000));
   esp_restart();
