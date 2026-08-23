@@ -531,6 +531,7 @@ static const char *INDEX_HTML = R"rawliteral(
                 e.preventDefault();
                 await fetchPage(path[1], '{"' + obj.name + '":"5"}');
               });
+              break;
             default:
               break;
           }
@@ -546,8 +547,6 @@ static const char *INDEX_HTML = R"rawliteral(
       });
     }
     window.addEventListener('load', (e) => {
-
-      console.log(`WebSocket connection to ws://${baseurl}:81`);
       websocket = new WebSocket(`ws://${baseurl}/ws`);
       websocket.onopen = (e) => {
           console.log('onopen');
@@ -557,9 +556,9 @@ static const char *INDEX_HTML = R"rawliteral(
           // setTimeout(initWebSocket, 2000);
       };
       websocket.onmessage = (e) => {
-          console.log(event.data)
           const ws_debug = document.getElementById('_ws_debug');
           ws_debug.value += event.data;
+          ws_debug.scrollTop = ws_debug.scrollHeight;
           //let obj = JSON.parse(event.data);
       };
 

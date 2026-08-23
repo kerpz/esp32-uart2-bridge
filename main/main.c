@@ -2,6 +2,7 @@
 #include "network.h"
 #include "webserver.h"
 #include "uart2.h"
+#include "adc.h"
 
 void app_main(void)
 {
@@ -9,4 +10,5 @@ void app_main(void)
     network_start();
     webserver_start();
     uart2_start();
+    adc_start();
 }

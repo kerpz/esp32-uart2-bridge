@@ -91,7 +91,7 @@ void uart2_task(void *arg)
         send(tcp_client_sock, buf, len, 0);
       }
 
-      ESP_LOGI("GPS_RAW", "%.*s", len, buf);
+      // ESP_LOGI("GPS_RAW", "%.*s", len, buf);
 
       for (int i = 0; i < len; i++)
       {
@@ -134,6 +134,7 @@ void uart2_task(void *arg)
               settimeofday(&now, NULL);
             }
 
+            /*
             ESP_LOGI("GPS_PARSED",
                      "UTC:%s Fix:%d Lat:%.6f Lon:%.6f Sat:%d Alt:%.1f",
                      g->utc_time,
@@ -142,6 +143,7 @@ void uart2_task(void *arg)
                      g->longitude,
                      g->satellites,
                      g->altitude);
+                     */
 
             linepos = 0; // reset line buffer
           }
