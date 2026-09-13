@@ -7,7 +7,7 @@
 
 static const char *TAG = "adc";
 static adc_oneshot_unit_handle_t adc_handle;
-volatile int adc_voltage_mv;
+volatile int adc_voltage_mv = 0;
 
 int adc_read_voltage_mv(void)
 {
