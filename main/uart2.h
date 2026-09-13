@@ -1,4 +1,5 @@
-#pragma once
+#ifndef UART2_H
+#define UART2_H
 
 // #define UART2_BAUD_RATE 115200
 #define UART2_BAUD_RATE 9600
@@ -14,3 +15,4 @@
 #define BUF_SIZE 1024
 
 void uart2_start(void);
+#endif

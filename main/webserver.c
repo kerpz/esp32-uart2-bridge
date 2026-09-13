@@ -218,60 +218,56 @@ static esp_err_t system_handler(httpd_req_t *req)
 
   cJSON *root = cJSON_CreateArray();
 
-  cJSON *sys = cJSON_CreateObject();
-  cJSON_AddStringToObject(sys, "label", "System");
-  cJSON_AddStringToObject(sys, "name", "expand_system");
-  cJSON_AddNumberToObject(sys, "value", expand_system);
+  cJSON *sys_section = cJSON_CreateObject();
+  cJSON_AddStringToObject(sys_section, "label", "System");
+  cJSON_AddStringToObject(sys_section, "name", "expand_system");
+  cJSON_AddNumberToObject(sys_section, "value", expand_system);
 
   cJSON *sys_elements = cJSON_CreateArray();
-  cJSON_AddItemToObject(sys, "elements", sys_elements);
-
   add_text_element(sys_elements, "Chip ID", "chip_id", chip_str);
   add_text_element(sys_elements, "Free Heap", "free_heap", heap_str);
   add_text_element(sys_elements, "Flash Size", "flash_size", flash_str);
   add_text_element(sys_elements, "App Code", "app_code", APPCODE);
   add_text_element(sys_elements, "System Date", "sys_date", datetime);
 
-  cJSON_AddItemToArray(root, sys);
+  cJSON_AddItemToObject(sys_section, "elements", sys_elements);
+  cJSON_AddItemToArray(root, sys_section);
 
-  cJSON *ap = cJSON_CreateObject();
-  cJSON_AddStringToObject(ap, "label", "Wifi AP");
-  cJSON_AddStringToObject(ap, "name", "expand_wifiap");
-  cJSON_AddNumberToObject(ap, "value", expand_wifiap);
-
-  cJSON *ap_elements = cJSON_CreateArray();
-  cJSON_AddItemToObject(ap, "elements", ap_elements);
+  cJSON *ap_section = cJSON_CreateObject();
+  cJSON_AddStringToObject(ap_section, "label", "Wifi AP");
+  cJSON_AddStringToObject(ap_section, "name", "expand_wifiap");
+  cJSON_AddNumberToObject(ap_section, "value", expand_wifiap);
 
   esp_wifi_get_config(WIFI_IF_AP, &wifi_cfg);
+  cJSON *ap_elements = cJSON_CreateArray();
   add_text_element(ap_elements, "AP MAC", "ap_mac", ap_mac);
   add_text_element(ap_elements, "AP Address", "ap_address", ap_ip);
   add_text_element(ap_elements, "AP SSID", "ap_ssid", (char *)wifi_cfg.ap.ssid);
   add_text_element(ap_elements, "Connected Devices", "connected_devices", sta_count_str);
 
-  cJSON_AddItemToArray(root, ap);
+  cJSON_AddItemToObject(ap_section, "elements", ap_elements);
+  cJSON_AddItemToArray(root, ap_section);
 
-  cJSON *sta = cJSON_CreateObject();
-  cJSON_AddStringToObject(sta, "label", "Wifi Sta");
-  cJSON_AddStringToObject(sta, "name", "expand_wifista");
-  cJSON_AddNumberToObject(sta, "value", expand_wifista);
-
-  cJSON *sta_elements = cJSON_CreateArray();
-  cJSON_AddItemToObject(sta, "elements", sta_elements);
+  cJSON *sta_section = cJSON_CreateObject();
+  cJSON_AddStringToObject(sta_section, "label", "Wifi Sta");
+  cJSON_AddStringToObject(sta_section, "name", "expand_wifista");
+  cJSON_AddNumberToObject(sta_section, "value", expand_wifista);
 
   esp_wifi_get_config(WIFI_IF_STA, &wifi_cfg);
+  cJSON *sta_elements = cJSON_CreateArray();
   add_text_element(sta_elements, "Sta MAC", "sta_mac", sta_mac);
   add_text_element(sta_elements, "Sta Address", "sta_address", sta_ip);
   add_text_element(sta_elements, "Sta SSID", "sta_ssid", (char *)wifi_cfg.sta.ssid);
 
-  cJSON_AddItemToArray(root, sta);
+  cJSON_AddItemToObject(sta_section, "elements", sta_elements);
+  cJSON_AddItemToArray(root, sta_section);
 
-  cJSON *cmd = cJSON_CreateObject();
-  cJSON_AddStringToObject(cmd, "label", "Command");
-  cJSON_AddStringToObject(cmd, "name", "expand_command");
-  cJSON_AddNumberToObject(cmd, "value", expand_command);
+  cJSON *cmd_section = cJSON_CreateObject();
+  cJSON_AddStringToObject(cmd_section, "label", "Command");
+  cJSON_AddStringToObject(cmd_section, "name", "expand_command");
+  cJSON_AddNumberToObject(cmd_section, "value", expand_command);
 
   cJSON *cmd_elements = cJSON_CreateArray();
-  cJSON_AddItemToObject(cmd, "elements", cmd_elements);
 
   cJSON *btn = cJSON_CreateObject();
   cJSON_AddStringToObject(btn, "type", "button");
@@ -281,7 +277,8 @@ static esp_err_t system_handler(httpd_req_t *req)
   cJSON_AddStringToObject(btn, "confirm", "Are you sure you want to reboot?");
   cJSON_AddItemToArray(cmd_elements, btn);
 
-  cJSON_AddItemToArray(root, cmd);
+  cJSON_AddItemToObject(cmd_section, "elements", cmd_elements);
+  cJSON_AddItemToArray(root, cmd_section);
 
   char *json_out = cJSON_PrintUnformatted(root);
 
@@ -350,37 +347,38 @@ esp_err_t config_handler(httpd_req_t *req)
   free(buf);
 
   cJSON *root = cJSON_CreateArray();
+  cJSON *obj;
 
-  cJSON *ap = cJSON_CreateObject();
-  cJSON_AddStringToObject(ap, "label", "Wifi AP");
-  cJSON_AddStringToObject(ap, "name", "expand_wifiap");
-  cJSON_AddNumberToObject(ap, "value", 1);
+  cJSON *ap_section = cJSON_CreateObject();
+  cJSON_AddStringToObject(ap_section, "label", "Wifi AP");
+  cJSON_AddStringToObject(ap_section, "name", "expand_wifiap");
+  cJSON_AddNumberToObject(ap_section, "value", 1);
+
   cJSON *ap_elements = cJSON_CreateArray();
-  cJSON_AddItemToObject(ap, "elements", ap_elements);
 
-  cJSON *txt = cJSON_CreateObject();
-  cJSON_AddStringToObject(txt, "type", "text");
-  cJSON_AddStringToObject(txt, "label", "AP SSID");
-  cJSON_AddStringToObject(txt, "name", "ap_ssid");
-  cJSON_AddStringToObject(txt, "value", devcfg.ap_ssid);
-  cJSON_AddItemToArray(ap_elements, txt);
+  obj = cJSON_CreateObject();
+  cJSON_AddStringToObject(obj, "type", "text");
+  cJSON_AddStringToObject(obj, "label", "AP SSID");
+  cJSON_AddStringToObject(obj, "name", "ap_ssid");
+  cJSON_AddStringToObject(obj, "value", devcfg.ap_ssid);
+  cJSON_AddItemToArray(ap_elements, obj);
 
-  txt = cJSON_CreateObject();
-  cJSON_AddStringToObject(txt, "type", "text");
-  cJSON_AddStringToObject(txt, "label", "AP Key");
-  cJSON_AddStringToObject(txt, "name", "ap_key");
-  cJSON_AddStringToObject(txt, "value", devcfg.ap_key);
-  cJSON_AddItemToArray(ap_elements, txt);
+  obj = cJSON_CreateObject();
+  cJSON_AddStringToObject(obj, "type", "text");
+  cJSON_AddStringToObject(obj, "label", "AP Key");
+  cJSON_AddStringToObject(obj, "name", "ap_key");
+  cJSON_AddStringToObject(obj, "value", devcfg.ap_key);
+  cJSON_AddItemToArray(ap_elements, obj);
 
-  cJSON_AddItemToArray(root, ap);
+  cJSON_AddItemToObject(ap_section, "elements", ap_elements);
+  cJSON_AddItemToArray(root, ap_section);
 
-  cJSON *sta = cJSON_CreateObject();
-  cJSON_AddStringToObject(sta, "label", "Wifi Sta");
-  cJSON_AddStringToObject(sta, "name", "expand_wifista");
-  cJSON_AddNumberToObject(sta, "value", 1);
+  cJSON *sta_section = cJSON_CreateObject();
+  cJSON_AddStringToObject(sta_section, "label", "Wifi Sta");
+  cJSON_AddStringToObject(sta_section, "name", "expand_wifista");
+  cJSON_AddNumberToObject(sta_section, "value", 1);
 
   cJSON *sta_elements = cJSON_CreateArray();
-  cJSON_AddItemToObject(sta, "elements", sta_elements);
 
   /*
   cJSON *sel = cJSON_CreateObject();
@@ -474,55 +472,56 @@ esp_err_t config_handler(httpd_req_t *req)
   // cJSON_AddStringToObject(txt, "value", devcfg.sta_ssid);
   // cJSON_AddItemToArray(sta_elements, txt);
 
-  txt = cJSON_CreateObject();
-  cJSON_AddStringToObject(txt, "type", "text");
-  cJSON_AddStringToObject(txt, "label", "Sta Key");
-  cJSON_AddStringToObject(txt, "name", "sta_key");
-  cJSON_AddStringToObject(txt, "value", devcfg.sta_key);
-  cJSON_AddItemToArray(sta_elements, txt);
+  obj = cJSON_CreateObject();
+  cJSON_AddStringToObject(obj, "type", "text");
+  cJSON_AddStringToObject(obj, "label", "Sta Key");
+  cJSON_AddStringToObject(obj, "name", "sta_key");
+  cJSON_AddStringToObject(obj, "value", devcfg.sta_key);
+  cJSON_AddItemToArray(sta_elements, obj);
 
-  cJSON_AddItemToArray(root, sta);
+  cJSON_AddItemToObject(sta_section, "elements", sta_elements);
+  cJSON_AddItemToArray(root, sta_section);
 
-  cJSON *comp = cJSON_CreateObject();
-  cJSON_AddStringToObject(comp, "label", "Components");
-  cJSON_AddStringToObject(comp, "name", "expand_component");
-  cJSON_AddNumberToObject(comp, "value", 1);
+  cJSON *comp_section = cJSON_CreateObject();
+  cJSON_AddStringToObject(comp_section, "label", "Components");
+  cJSON_AddStringToObject(comp_section, "name", "expand_component");
+  cJSON_AddNumberToObject(comp_section, "value", 1);
 
   cJSON *comp_elements = cJSON_CreateArray();
-  cJSON_AddItemToObject(comp, "elements", comp_elements);
 
   json_add_select(comp_elements, "beep_enable", "Beep", devcfg.beep_enable);
   json_add_select(comp_elements, "analog_enable", "Analog", devcfg.analog_enable);
   json_add_select(comp_elements, "display_enable", "Display", devcfg.display_enable);
   json_add_select(comp_elements, "ads1115_enable", "ADS1115", devcfg.ads1115_enable);
 
-  cJSON_AddItemToArray(root, comp);
+  cJSON_AddItemToObject(comp_section, "elements", comp_elements);
+  cJSON_AddItemToArray(root, comp_section);
 
-  cJSON *api = cJSON_CreateObject();
-  cJSON_AddStringToObject(api, "label", "API Post");
-  cJSON_AddStringToObject(api, "name", "expand_post");
-  cJSON_AddNumberToObject(api, "value", 1);
+  cJSON *api_section = cJSON_CreateObject();
+  cJSON_AddStringToObject(api_section, "label", "API Post");
+  cJSON_AddStringToObject(api_section, "name", "expand_post");
+  cJSON_AddNumberToObject(api_section, "value", 1);
 
   cJSON *api_elements = cJSON_CreateArray();
-  cJSON_AddItemToObject(api, "elements", api_elements);
 
   json_add_select(api_elements, "post_enable", "API Post", devcfg.post_enable);
 
-  txt = cJSON_CreateObject();
-  cJSON_AddStringToObject(txt, "type", "text");
-  cJSON_AddStringToObject(txt, "label", "API url");
-  cJSON_AddStringToObject(txt, "name", "api_url");
-  cJSON_AddStringToObject(txt, "value", devcfg.api_url);
-  cJSON_AddItemToArray(api_elements, txt);
+  obj = cJSON_CreateObject();
+  cJSON_AddStringToObject(obj, "type", "text");
+  cJSON_AddStringToObject(obj, "label", "API url");
+  cJSON_AddStringToObject(obj, "name", "api_url");
+  cJSON_AddStringToObject(obj, "value", devcfg.api_url);
+  cJSON_AddItemToArray(api_elements, obj);
 
-  txt = cJSON_CreateObject();
-  cJSON_AddStringToObject(txt, "type", "text");
-  cJSON_AddStringToObject(txt, "label", "API key");
-  cJSON_AddStringToObject(txt, "name", "api_key");
-  cJSON_AddStringToObject(txt, "value", devcfg.api_key);
-  cJSON_AddItemToArray(api_elements, txt);
+  obj = cJSON_CreateObject();
+  cJSON_AddStringToObject(obj, "type", "text");
+  cJSON_AddStringToObject(obj, "label", "API key");
+  cJSON_AddStringToObject(obj, "name", "api_key");
+  cJSON_AddStringToObject(obj, "value", devcfg.api_key);
+  cJSON_AddItemToArray(api_elements, obj);
 
-  cJSON_AddItemToArray(root, api);
+  cJSON_AddItemToObject(api_section, "elements", api_elements);
+  cJSON_AddItemToArray(root, api_section);
 
   // cJSON *alarm = cJSON_CreateObject();
   // cJSON_AddStringToObject(alarm, "label", "Alarm");
@@ -541,22 +540,22 @@ esp_err_t config_handler(httpd_req_t *req)
 
   // cJSON_AddItemToArray(root, alarm);
 
-  cJSON *page = cJSON_CreateObject();
-  cJSON_AddStringToObject(page, "label", "Page");
-  cJSON_AddStringToObject(page, "name", "expand_page");
-  cJSON_AddNumberToObject(page, "value", 1);
+  cJSON *page_section = cJSON_CreateObject();
+  cJSON_AddStringToObject(page_section, "label", "Page");
+  cJSON_AddStringToObject(page_section, "name", "expand_page");
+  cJSON_AddNumberToObject(page_section, "value", 1);
 
   cJSON *page_elements = cJSON_CreateArray();
-  cJSON_AddItemToObject(page, "elements", page_elements);
 
-  txt = cJSON_CreateObject();
-  cJSON_AddStringToObject(txt, "type", "button");
-  cJSON_AddStringToObject(txt, "label", "UPDATE");
-  cJSON_AddStringToObject(txt, "name", "update");
-  cJSON_AddStringToObject(txt, "value", "update");
-  cJSON_AddItemToArray(page_elements, txt);
+  obj = cJSON_CreateObject();
+  cJSON_AddStringToObject(obj, "type", "button");
+  cJSON_AddStringToObject(obj, "label", "UPDATE");
+  cJSON_AddStringToObject(obj, "name", "update");
+  cJSON_AddStringToObject(obj, "value", "update");
+  cJSON_AddItemToArray(page_elements, obj);
 
-  cJSON_AddItemToArray(root, page);
+  cJSON_AddItemToObject(page_section, "elements", page_elements);
+  cJSON_AddItemToArray(root, page_section);
 
   char *json_out = cJSON_PrintUnformatted(root);
   httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
@@ -571,7 +570,7 @@ esp_err_t config_handler(httpd_req_t *req)
 
 esp_err_t app_handler(httpd_req_t *req)
 {
-  uint8_t refresh = 2;
+  // uint8_t refresh = 2;
   int total = req->content_len;
   char *buf = malloc(total + 1);
   if (!buf)
@@ -590,11 +589,11 @@ esp_err_t app_handler(httpd_req_t *req)
     cJSON *doc = cJSON_Parse(buf);
     if (doc)
     {
-      cJSON *item;
+      // cJSON *item;
 
-      item = cJSON_GetObjectItem(doc, "refresh");
-      if (item)
-        refresh = item->valueint;
+      // item = cJSON_GetObjectItem(doc, "refresh");
+      // if (item)
+      //   refresh = item->valueint;
 
       cJSON_Delete(doc);
     }
@@ -602,39 +601,38 @@ esp_err_t app_handler(httpd_req_t *req)
   free(buf);
 
   cJSON *root = cJSON_CreateArray();
+  cJSON *obj;
 
-  cJSON *ws = cJSON_CreateObject();
-  cJSON_AddStringToObject(ws, "label", "WS");
-  cJSON_AddStringToObject(ws, "name", "expand_ws");
-  cJSON_AddNumberToObject(ws, "value", 1);
-  cJSON *ws_elements = cJSON_CreateArray();
-  cJSON_AddItemToObject(ws, "elements", ws_elements);
+  cJSON *section = cJSON_CreateObject();
+  cJSON_AddStringToObject(section, "label", "WS Debug");
+  cJSON_AddStringToObject(section, "name", "expand_ws_debug");
+  cJSON_AddNumberToObject(section, "value", 1);
 
-  cJSON *txt = cJSON_CreateObject();
-  cJSON_AddStringToObject(txt, "type", "textarea");
-  cJSON_AddStringToObject(txt, "label", "WS Debug");
-  cJSON_AddStringToObject(txt, "name", "ws_debug");
-  cJSON_AddStringToObject(txt, "value", "");
-  cJSON_AddItemToArray(ws_elements, txt);
+  cJSON *elements = cJSON_CreateArray();
 
-  cJSON_AddItemToArray(root, ws);
+  obj = cJSON_CreateObject();
+  cJSON_AddStringToObject(obj, "type", "textarea");
+  cJSON_AddStringToObject(obj, "label", "Debug");
+  cJSON_AddStringToObject(obj, "name", "ws_debug");
+  cJSON_AddStringToObject(obj, "value", "");
+  cJSON_AddItemToArray(elements, obj);
 
-  cJSON *page = cJSON_CreateObject();
-  cJSON_AddStringToObject(page, "label", "Page");
-  cJSON_AddStringToObject(page, "name", "expand_page");
-  cJSON_AddNumberToObject(page, "value", 1);
+  obj = cJSON_CreateObject();
+  cJSON_AddStringToObject(obj, "type", "text");
+  cJSON_AddStringToObject(obj, "label", "Command");
+  cJSON_AddStringToObject(obj, "name", "ws_command");
+  cJSON_AddStringToObject(obj, "value", "");
+  cJSON_AddItemToArray(elements, obj);
 
-  cJSON *page_elements = cJSON_CreateArray();
-  cJSON_AddItemToObject(page, "elements", page_elements);
+  obj = cJSON_CreateObject();
+  cJSON_AddStringToObject(obj, "type", "button");
+  cJSON_AddStringToObject(obj, "label", "SEND");
+  cJSON_AddStringToObject(obj, "name", "ws_send");
+  cJSON_AddStringToObject(obj, "value", "send");
+  cJSON_AddItemToArray(elements, obj);
 
-  txt = cJSON_CreateObject();
-  cJSON_AddStringToObject(txt, "type", "refresh");
-  cJSON_AddStringToObject(txt, "label", "Refresh");
-  cJSON_AddStringToObject(txt, "name", "refresh");
-  cJSON_AddNumberToObject(txt, "value", refresh);
-  cJSON_AddItemToArray(page_elements, txt);
-
-  cJSON_AddItemToArray(root, page);
+  cJSON_AddItemToObject(section, "elements", elements);
+  cJSON_AddItemToArray(root, section);
 
   char *json_out = cJSON_PrintUnformatted(root);
   httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
@@ -740,6 +738,7 @@ static esp_err_t firmware_handler(httpd_req_t *req)
   httpd_resp_sendstr(req, html);
   */
   cJSON *root = cJSON_CreateArray();
+  cJSON *obj;
 
   cJSON *section = cJSON_CreateObject();
   cJSON_AddStringToObject(section, "label", "Firmware Upgrade");
@@ -747,23 +746,23 @@ static esp_err_t firmware_handler(httpd_req_t *req)
   cJSON_AddStringToObject(section, "value", "1");
 
   cJSON *elements = cJSON_CreateArray();
+
+  obj = cJSON_CreateObject();
+  cJSON_AddStringToObject(obj, "type", "file");
+  cJSON_AddStringToObject(obj, "label", "File");
+  cJSON_AddStringToObject(obj, "name", "file");
+  cJSON_AddStringToObject(obj, "value", "");
+  cJSON_AddStringToObject(obj, "accept", ".bin");
+  cJSON_AddItemToArray(elements, obj);
+
+  obj = cJSON_CreateObject();
+  cJSON_AddStringToObject(obj, "type", "button");
+  cJSON_AddStringToObject(obj, "label", "UPLOAD");
+  cJSON_AddStringToObject(obj, "name", "upload");
+  cJSON_AddStringToObject(obj, "value", "upload");
+  cJSON_AddItemToArray(elements, obj);
+
   cJSON_AddItemToObject(section, "elements", elements);
-
-  cJSON *file = cJSON_CreateObject();
-  cJSON_AddStringToObject(file, "type", "file");
-  cJSON_AddStringToObject(file, "label", "File");
-  cJSON_AddStringToObject(file, "name", "file");
-  cJSON_AddStringToObject(file, "value", "");
-  cJSON_AddStringToObject(file, "accept", ".bin");
-  cJSON_AddItemToArray(elements, file);
-
-  cJSON *btn = cJSON_CreateObject();
-  cJSON_AddStringToObject(btn, "type", "button");
-  cJSON_AddStringToObject(btn, "label", "UPLOAD");
-  cJSON_AddStringToObject(btn, "name", "upload");
-  cJSON_AddStringToObject(btn, "value", "upload");
-  cJSON_AddItemToArray(elements, btn);
-
   cJSON_AddItemToArray(root, section);
 
   char *json_out = cJSON_PrintUnformatted(root);

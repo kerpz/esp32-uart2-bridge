@@ -1,4 +1,5 @@
-#pragma once
+#ifndef HTML_H
+#define HTML_H
 
 static const char *INDEX_HTML = R"rawliteral(
 <!DOCTYPE html>
@@ -384,13 +385,7 @@ static const char *INDEX_HTML = R"rawliteral(
         console.log('error in fileUpload');
       }
     }
-    const send = (obj) => {
-      /*
-      let obj = {
-          test: 'hello',
-          test2: 'world'
-      };
-      */
+    const ws_send = (obj) => {
       websocket.send(JSON.stringify(obj));
     }
     const createPage = async (groups) => {
@@ -503,6 +498,13 @@ static const char *INDEX_HTML = R"rawliteral(
                   const fileInput = document.querySelector('#_file');
                   await fileUpload(fileInput);
                 }
+                else if (obj.name === 'ws_send') {
+                  let inObj = { cmd: 'message', value: document.getElementById('_ws_command').value };
+                  await ws_send(inObj);
+                  document.getElementById('_ws_command').value = '';
+                  el.disabled = false;
+                  console.log('ws_send', inObj);
+                }
                 else {
                   let inObj = {};
                   inObj[obj.name] = obj.value;
@@ -547,21 +549,6 @@ static const char *INDEX_HTML = R"rawliteral(
       });
     }
     window.addEventListener('load', (e) => {
-      websocket = new WebSocket(`ws://${baseurl}/ws`);
-      websocket.onopen = (e) => {
-          console.log('onopen');
-      };
-      websocket.onclose = (e) => {
-          console.log('onclose');
-          // setTimeout(initWebSocket, 2000);
-      };
-      websocket.onmessage = (e) => {
-          const ws_debug = document.getElementById('_ws_debug');
-          ws_debug.value += event.data;
-          ws_debug.scrollTop = ws_debug.scrollHeight;
-          //let obj = JSON.parse(event.data);
-      };
-
       const hash = location.hash.split("#");
       if (hash[1]) {
         path = hash[1].split("/");
@@ -573,11 +560,44 @@ static const char *INDEX_HTML = R"rawliteral(
       else {
         window.location = '#/app';
       }
+
+      if (path[1] === 'app') {
+        websocket = new WebSocket(`ws://${baseurl}/ws`);
+        websocket.onopen = (e) => {
+            console.log('onopen');
+        };
+        websocket.onclose = (e) => {
+            console.log('onclose');
+            // setTimeout(initWebSocket, 2000);
+        };
+        websocket.onmessage = (e) => {
+            const ws_debug = document.getElementById('_ws_debug');
+            ws_debug.value += event.data;
+            ws_debug.scrollTop = ws_debug.scrollHeight;
+            //let obj = JSON.parse(event.data);
+        };
+      }
     });
     window.addEventListener("hashchange", (e) => {
       const hash = location.hash.split("#");
       if (hash[1]) {
         path = hash[1].split("/");
+        if (path[1] === 'app') {
+          if (!websocket || websocket.readyState === WebSocket.CLOSED) {
+            websocket = new WebSocket(`ws://${baseurl}/ws`);
+            websocket.onopen = (e) => { console.log('onopen'); };
+            websocket.onclose = (e) => { console.log('onclose'); };
+            websocket.onmessage = (e) => {
+              const ws_debug = document.getElementById('_ws_debug');
+              ws_debug.value += event.data;
+              ws_debug.scrollTop = ws_debug.scrollHeight;
+            };
+          }
+        }
+        else {
+          if (websocket && websocket.readyState === WebSocket.OPEN)
+            websocket.close();
+        }
         fetchPage(path[1], '{}');
         navLinks.classList.remove('active');
       }
@@ -593,3 +613,4 @@ static const char *INDEX_HTML = R"rawliteral(
 
 </html>
 )rawliteral";
+#endif

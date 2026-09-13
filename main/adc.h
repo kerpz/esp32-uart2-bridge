@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ADC_H
+#define ADC_H
 
 #include <stdint.h>
 
@@ -10,3 +11,4 @@ extern volatile int adc_voltage_mv;
 
 void adc_start(void);
 int adc_read_voltage_mv(void);
+#endif
